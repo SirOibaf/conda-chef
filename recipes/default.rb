@@ -62,59 +62,25 @@ bash "remove_hops-system_env" do
   only_if "test -d #{node['conda']['base_dir']}/envs/hops-system", :user => node['conda']['user']
 end
 
-## Bash resource in Chef is weird! It does not login
-## as the user specifed in 'user' property, nor setup
-## the correct environment variables such as USER,
-## LOGNAME, USERNAME etc. In order to install Pydoop
-## user should have read access to bin/hadoop binary.
-## We could have set all the required env vars to anaconda
-## but then we would also need to get somehow the hadoop group.
-## We cannon include hops-hadoop-chef attribute as there will
-## be cyclic dependencies, so this is the only solution that works.
-bash "create_hops-system_env" do
-  user 'root'
+remote_file "/tmp/chef-solo/hops-system.tar.gz" do
+  source "http://snurran.sics.se/hops/base_envs/hops-system.tar.gz" 
+  owner 'root'
   group 'root'
-  umask "022"
-  cwd "/home/#{node['conda']['user']}"
+  mode '0755'
+  action :create
+end
+
+# TODO(Fabio): call conda-unpack
+bash "extrac_base_envs" do 
+  user "root"
+  group "root" 
   code <<-EOF
     set -e
-    su #{node['conda']['user']} -c "HADOOP_HOME=#{node['install']['dir']}/hadoop PATH=#{node['install']['dir']}/hadoop/bin:$PATH \
-       #{node['conda']['base_dir']}/bin/conda env create -q --file hops-system-environment.yml"
-
-    export HOPS_UTIL_PY_VERSION=#{node['conda']['hops-util-py']['version']}
-    export HOPS_UTIL_PY_BRANCH=#{node['conda']['hops-util-py']['branch']}
-    export HOPS_UTIL_PY_REPO=#{node['conda']['hops-util-py']['repo']}
-    export HOPS_UTIL_PY_INSTALL_MODE=#{node['conda']['hops-util-py']['install-mode']}
-    if [ $HOPS_UTIL_PY_INSTALL_MODE == "git" ] ; then
-        yes | "#{node['conda']['base_dir']}"/envs/hops-system/bin/pip install git+https://github.com/${HOPS_UTIL_PY_REPO}/hops-util-py@$HOPS_UTIL_PY_BRANCH --no-dependencies
-    else
-        yes | "#{node['conda']['base_dir']}"/envs/hops-system/bin/pip install hops==$HOPS_UTIL_PY_VERSION --no-dependencies
-    fi
+    mkdir /srv/hops/anaconda/envs/hops-system
+    mv /tmp/chef-solo/hops-system.tar.gz /srv/hops/anaconda/envs/hops-system
+    cd /srv/hops/anaconda/envs/hops-system
+    tar xf hops-system.tar.gz
+    rm hops-system.tar.gz
+    chown -R anaconda:anaconda /srv/hops/anaconda/envs/hops-system
   EOF
-  not_if "test -d #{node['conda']['base_dir']}/envs/hops-system", :user => node['conda']['user']
-end
-
-bash "update_pip_hops-system_env" do
-  user node['conda']['user']
-  group node['conda']['group']
-  umask "022"
-  environment ({'HOME' => "/home/#{node['conda']['user']}"})
-  cwd "/home/#{node['conda']['user']}"
-  code <<-EOF
-    #{node['conda']['base_dir']}/envs/hops-system/bin/pip install --upgrade pip       
-  EOF
-  only_if "test -d #{node['conda']['base_dir']}/envs/hops-system", :user => node['conda']['user']  
-end
-
-## kagent_utils directory is not accessible by conda user
-## install it as root and change permissions
-bash "install_kagent_utils" do
-  user 'root'
-  group 'root'
-  umask "022"
-  code <<-EOF
-    #{node['conda']['base_dir']}/envs/hops-system/bin/pip install -q  #{Chef::Config['file_cache_path']}/kagent_utils
-    chown -R #{node['conda']['user']}:#{node['conda']['group']} #{node['conda']['base_dir']}/envs/hops-system
-  EOF
-  only_if "test -d #{node['conda']['base_dir']}/envs/hops-system", :user => node['conda']['user']
 end
