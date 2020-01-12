@@ -1,5 +1,6 @@
 ############################ BEGIN GLOBAL ATTRIBUTES #######################################
 
+default["download_url"]                           = "http://193.10.67.171/hops"
 default["install"]["ssl"]                         = "false"
 default["install"]["cleanup_downloads"]           = "false"
 default["install"]["addhost"]                     = "false"
@@ -45,20 +46,12 @@ default['install']['enterprise']['password']      = nil
 default['conda']['version']                       = "2019.10"
 # the version of python: either '2' or '3'
 default['conda']['python']                        = "3"
-default['conda']['nvidia-ml-py']['version']       = "7.352.0"
-default['conda']['pydoop']['version']             = "2.0.0"
-default['conda']['beam']['version']               = "2.15.0"
-default['conda']['beam']['python']['version']     = node['conda']['beam']['version'] + ".3"
-# either 'pip' or 'git'
-default["conda"]["hops-util-py"]["install-mode"]  = 'git'
-default["conda"]["hops-util-py"]["branch"]        = "master"
-default["conda"]["hops-util-py"]["repo"]          = "logicalclocks"
-default["conda"]["hops-util-py"]["minor"]         = "3"
-# last digit is the bugfix version, assuming a version format of X.X.X.X
-default["conda"]["hops-util-py"]["version"]       = node["install"]["version"] + "." + node["conda"]["hops-util-py"]["minor"]
 
 # node['download_url'] is not set unless overwritten in the cluster definition. If it's not overwritten, download the artifact from snurran
 default['conda']['url']                           = node.attribute?(:download_url) ? node['download_url'] + "/Anaconda#{node['conda']['python']}-#{node['conda']['version']}-Linux-x86_64.sh" : "http://snurran.sics.se/hops/Anaconda#{node['conda']['python']}-#{node['conda']['version']}-Linux-x86_64.sh"
+
+default['conda']['base_envs']['download_url']     = node.attribute?(:download_url) ? node['download_url'] + "/
+
 
 default['conda']['user']                          = node['install']['user'].empty? ? 'anaconda' : node['install']['user']
 default['conda']['group']                         = node['install']['user'].empty? ? 'anaconda' : node['install']['user']
@@ -88,8 +81,3 @@ default['conda']['libs']                          = "hops, pandas, numpy, matplo
 default['conda']['provided_lib_names']            =  node['conda']['additional_libs'].empty? ? node['conda']['libs'] : "#{node['conda']['libs']}, #{node['conda']['additional_libs']}"
 # Comma separated list of preinstalled libraries users are not able to uninstall
 default['conda']['preinstalled_lib_names']        = "pydoop, pyspark, tensorboard, jupyterlab, sparkmagic, hdfscontents, pyjks, hops-apache-beam, pyopenssl"
-
-default['conda']['jupyter']['version']['py3']            = "1.1.4"
-default['conda']['jupyter']['version']['py2']            = "0.33.12"
-## Hopsworks version of JupyterLab-Git pluging, last digit is Hopsworks version
-default['conda']['jupyter']['jupyterlab-git']['version'] = "0.8.1.2"
